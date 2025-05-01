@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Australian Business Expense Tax Classifier</title>
+    <style>
+        :root {
+            --primary: #0053a6;
+            --primary-light: #e6f0fa;
+            --success: #28a745;
+            --warning: #f4c842;
+            --danger: #dc3545;
+            --dark: #333;
+            --light: #f8f9fa;
+            --gray: #6c757d;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        h1, h2, h3 {
+            color: var(--primary);
+        }
+        
+        h1 {
+            text-align: center;
+            border-bottom: 2px solid var(--primary);
+            padding-bottom: 10px;
+            margin-bottom: 30px;
+        }
+        
+        .tab-container {
+            margin-bottom: 30px;
+        }
+        
+        .tabs {
+            display: flex;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            border-bottom: 1px solid var(--gray);
+        }
+        
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border: 1px solid transparent;
+            border-bottom: none;
+            margin-right: 5px;
+            background-color: #f0f0f0;
+            border-radius: 5px 5px 0 0;
+        }
+        
+        .tab.active {
+            background-color: white;
+            border-color: var(--gray);
+            border-bottom: 1px solid white;
+            margin-bottom: -1px;
+            font-weight: bold;
+            color: var(--primary);
+        }
+        
+        .tab-content {
+            display: none;
+            padding: 20px;
+            border: 1px solid var(--gray);
+            border-top: none;
+            background-color: white;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .decision-container {
+            border: 1px solid #ddd;
+            padding: 20px;
+            margin-bottom: 30px;
+            border-radius: 5px;
+            background-color: var(--primary-light);
+        }
+        
+        .question {
+            font-weight: bold;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+        
+        .options {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        button {
+            padding: 10px 15px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #003d7a;
+        }
+        
+        button.secondary {
+            background-color: var(--gray);
+        }
+        
+        button.secondary:hover {
+            background-color: #555;
+        }
+        
+        .result-container {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 5px;
+            display: none;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+        }
+        
+        .result-heading {
+            margin-top: 0;
+            font-size: 1.2em;
+            color: var(--dark);
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .result-item {
+            margin-bottom: 10px;
+            padding: 5px;
+        }
+        
+        .result-label {
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        
+        .yes {
+            color: var(--success);
+            font-weight: bold;
+        }
+        
+        .no {
+            color: var(--danger);
+            font-weight: bold;
+        }
+        
+        .maybe {
+            color: var(--warning);
+            font-weight: bold;
+        }
+        
+        .notes {
+            margin-top: 15px;
+            font-style: italic;
+            font-size: 0.9em;
+        }
+        
+        .restart {
+            margin-top: 20px;
+        }
+        
+        .helpful-hint {
+            background-color: #e8f4fd;
+            border-left: 4px solid var(--primary);
+            padding: 10px 15px;
+            margin: 20px 0;
+            font-size: 0.9em;
+        }
+        
+        .breadcrumb {
+            margin-bottom: 20px;
+            font-size: 0.9em;
+            color: var(--gray);
+        }
+        
+        .back-button {
+            background-color: #f0f0f0;
+            color: var(--dark);
+            border: 1px solid #ddd;
+            padding: 5px 10px;
+            font-size: 0.9em;
+            margin-right: 10px;
+        }
+        
+        .back-button:hover {
+            background-color: #e0e0e0;
+        }
+        
+        .disclaimer {
+            margin-top: 50px;
+            font-size: 0.8em;
+            color: var(--gray);
+            border-top: 1px solid #ddd;
+            padding-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Australian Business Expense Tax Classifier</h1>
+    
+    <div class="tab-container">
+        <ul class="tabs">
+            <li class="tab active" data-tab="meals">Meal Expenses</li>
+            <li class="tab" data-tab="travel">Travel Expenses</li>
+            <li class="tab" data-tab="entertainment">Entertainment</li>
+        </ul>
+        
+        <!-- Meals Tab -->
+        <div id="meals" class="tab-content active">
+            <h2>Meal Expenses Decision Tree</h2>
+            <p>Answer the following questions to determine the tax treatment of your meal expense.</p>
+            
+            <div id="meal-decision-tree" class="decision-container">
+                <div id="meal-q1" class="question-container">
+                    <div class="question">Is the meal expense incurred during overnight business travel?</div>
+                    <div class="options">
+                        <button onclick="mealQ1('yes')">Yes</button>
+                        <button onclick="mealQ1('no')">No</button>
+                    </div>
+                </div>
+                
+                <div id="meal-q2" class="question-container" style="display: none;">
+                    <div class="question">Is the meal provided on business premises during work hours?</div>
+                    <div class="options">
+                        <button onclick="mealQ2('yes')">Yes</button>
+                        <button onclick="mealQ2('no')">No</button>
+                    </div>
+                </div>
+                
+                <div id="meal-q3" class="question-container" style="display: none;">
+                    <div class="question">Is the meal for employees only?</div>
+                    <div class="options">
+                        <button onclick="mealQ3('yes')">Yes</button>
+                        <button onclick="mealQ3('no')">No</button>
+                    </div>
+                </div>
+                
+                <div id="meal-q4" class="question-container" style="display: none;">
+                    <div class="question">Is it a social function (e.g., celebration, staff event)?</div>
+                    <div class="options">
+                        <button onclick="mealQ4('yes')">Yes</button>
+                        <button onclick="mealQ4('no')">No</button>
+                    </div>
+                </div>
+                
+                <div id="meal-q5" class="question-container" style="display: none;">
+                    <div class="question">Is the cost less than $300 per person?</div>
+                    <div class="options">
+                        <button onclick="mealQ5('yes')">Yes</button>
+                        <button onclick="mealQ5('no')">No</button>
+                    </div>
+                </div>
+                
+                <div id="meal-q6" class="question-container" style="display: none;">
+                    <div class="question">Does the meal include clients or other external parties?</div>
+                    <div class="options">
+                        <button onclick="mealQ6('yes')">Yes</button>
+                        <button onclick="mealQ6('no')">No</button>
+                    </div>
+                </div>
+                
+                <div id="meal-result" class="result-container">
+                    <h3 class="result-heading">Tax Treatment Result</h3>
+                    <div class="result-item">
+                        <span class="result-label">Income Tax Deductible:</span>
+                        <span id="meal-deductible"></span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">FBT Applies:</span>
+                        <span id="meal-fbt"></span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">GST Credits Available:</span>
+                        <span id="meal-gst"></span>
+                    </div>
+                    <div id="meal-notes" class="notes"></div>
+                    <div class="restart">
+                        <button onclick="resetMeal()" class="secondary">Start Over</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="helpful-hint">
+                <strong>Helpful Hint:</strong> Remember that all expenses over $82.50 (including GST) require a valid tax invoice for GST credits to be claimed.
+            </div>
+        </div>
+        
+        <!-- Travel Tab -->
+        <div id="travel" class="tab-content">
+            <h2>Travel Expenses Decision Tree</h2>
+            <p>Answer the following questions to determine the tax treatment of your travel expense.</p>
+            
+            <div id="travel-decision-tree" class="decision-container">
+                <div id="travel-q1" class="question-container">
+                    <div class="question">Is it travel between home and regular workplace?</div>
+                    <div class="options">
+                        <button onclick="travelQ1('yes')">Yes</button>
+                        <button onclick="travelQ1('no')">No</button>
+                    </div>
+                </div>
+                
+                <div id="travel-q2" class="question-container" style="display: none;">
+                    <div class="question">Is it overnight business travel?</div>
+                    <div class="options">
+                        <button onclick="travelQ2('yes')">Yes</button>
+                        <button onclick="travelQ2('no')">No</button>
+                    </div>
+                </div>
+                
+                <div id="travel-q3" class="question-container" style="display: none;">
+                    <div class="question">Is the travel entirely for business purposes?</div>
+                    <div class="options">
+                        <button onclick="travelQ3('yes')">Yes</button>
+                        <button onclick="travelQ3('no')">No</button>
+                    </div>
+                </div>
+                
+                <div id="travel-q4" class="question-container" style="display: none;">
+                    <div class="question">Is there a private component to the travel?</div>
+                    <div class="options">
+                        <button onclick="travelQ4('yes')">Yes</button>
+                        <button onclick="travelQ4('no')">No</button>
+                    </div>
+                </div>
+                
+                <div id="travel-q5" class="question-container" style="display: none;">
+                    <div class="question">Is it travel between work locations?</div>
+                    <div class="options">
+                        <button onclick="travelQ5('yes')">Yes</button>
+                        <button onclick="travelQ5('no')">No</button>
+                    </div>
+                </div>
+                
+                <div id="travel-result" class="result-container">
+                    <h3 class="result-heading">Tax Treatment Result</h3>
+                    <div class="result-item">
+                        <span class="result-label">Income Tax Deductible:</span>
+                        <span id="travel-deductible"></span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">FBT Applies:</span>
+                        <span id="travel-fbt"></span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">GST Credits Available:</span>
+                        <span id="travel-gst"></span>
+                    </div>
+                    <div id="travel-notes" class="notes"></div>
+                    <div class="restart">
+                        <button onclick="resetTravel()" class="secondary">Start Over</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="helpful-hint">
+                <strong>Helpful Hint:</strong> For overnight travel exceeding 6 nights, a travel diary should be maintained documenting business activities.
+            </div>
+        </div>
+        
+        <!-- Entertainment Tab -->
+        <div id="entertainment" class="tab-content">
+            <h2>Entertainment Expenses Decision Tree</h2>
+            <p>Answer the following questions to determine if your expense is classified as entertainment and its tax treatment.</p>
+            
+            <div id="entertainment-decision-tree" class="decision-container">
+                <div id="ent-q1" class="question-container">
+                    <div class="question">Does the expense involve food, drink, or recreation?</div>
+                    <div class="options">
+                        <button onclick="entQ1('yes')">Yes</button>
+                        <button onclick="entQ1('no')">No</button>
+                    </div>
+                </div>
+                
+                <div id="ent-q2" class="question-container" style="display: none;">
+                    <div class="question">Is it one of the following: morning/afternoon tea for staff, light meal during overtime, or simple refreshments at a seminar?</div>
+                    <div class="options">
+                        <button onclick="entQ2('yes')">Yes</button>
+                        <button onclick="entQ2('no')">No</button>
+                    </div>
+                </div>
+                
+                <div id="ent-q3" class="question-container" style="display: none;">
+                    <div class="question">Is it provided to employees?</div>
+                    <div class="options">
+                        <button onclick="entQ3('yes')">Yes</button>
+                        <button onclick="entQ3('no')">No</button>
+                    </div>
+                </div>
+                
+                <div id="ent-q4" class="question-container" style="display: none;">
+                    <div class="question">Is it work-related (e.g., business meeting, training)?</div>
+                    <div class="options">
+                        <button onclick="entQ4('yes')">Yes</button>
+                        <button onclick="entQ4('no')">No</button>
+                    </div>
+                </div>
+                
+                <div id="ent-q5" class="question-container" style="display: none;">
+                    <div class="question">Is the cost per employee less than $300?</div>
+                    <div class="options">
+                        <button onclick="entQ5('yes')">Yes</button>
+                        <button onclick="entQ5('no')">No</button>
+                    </div>
+                </div>
+                
+                <div id="ent-result" class="result-container">
+                    <h3 class="result-heading">Tax Treatment Result</h3>
+                    <div class="result-item">
+                        <span class="result-label">Is this Entertainment:</span>
+                        <span id="ent-isent"></span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">Income Tax Deductible:</span>
+                        <span id="ent-deductible"></span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">FBT Applies:</span>
+                        <span id="ent-fbt"></span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">GST Credits Available:</span>
+                        <span id="ent-gst"></span>
+                    </div>
+                    <div id="ent-notes" class="notes"></div>
+                    <div class="restart">
+                        <button onclick="resetEnt()" class="secondary">Start Over</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="helpful-hint">
+                <strong>Helpful Hint:</strong> Entertainment expenses require careful documentation including attendees, business purpose, and venue.
+            </div>
+        </div>
+    </div>
+    
+    <div class="disclaimer">
+        <strong>Disclaimer:</strong> This tool provides general guidance only and should not be relied upon as tax advice. Tax laws are complex and subject to change. Consult with a qualified tax professional for advice specific to your circumstances. Information current as of May 2025.
+    </div>
+    
+    <script>
+        // Tab functionality
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                // Remove active class from all tabs and content
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                
+                // Add active class to clicked tab and corresponding content
+                tab.classList.add('active');
+                document.getElementById(tab.getAttribute('data-tab')).classList.add('active');
+            });
+        });
+        
+        // Meal Decision Tree Functions
+        function mealQ1(answer) {
+            if (answer === 'yes') {
+                // During overnight business travel
+                showMealResult('YES', 'NO', 'YES', 'Meals during overnight business travel are generally deductible and exempt from FBT under the travel exemption.');
+            } else {
+                // Not during overnight travel
+                document.getElementById('meal-q1').style.display = 'none';
+                document.getElementById('meal-q2').style.display = 'block';
+            }
+        }
+        
+        function mealQ2(answer) {
+            if (answer === 'yes') {
+                // On business premises during work hours
+                showMealResult('YES', 'NO', 'YES', 'Meals provided on business premises during work hours are deductible and exempt from FBT under the on-premises exemption.');
+            } else {
+                // Not on business premises
+                document.getElementById('meal-q2').style.display = 'none';
+                document.getElementById('meal-q3').style.display = 'block';
+            }
+        }
+        
+        function mealQ3(answer) {
+            if (answer === 'yes') {
+                // Employees only
+                document.getElementById('meal-q3').style.display = 'none';
+                document.getElementById('meal-q4').style.display = 'block';
+            } else {
+                // Not employees only
+                document.getElementById('meal-q3').style.display = 'none';
+                document.getElementById('meal-q6').style.display = 'block';
+            }
+        }
+        
+        function mealQ4(answer) {
+            if (answer === 'yes') {
+                // Social function
+                document.getElementById('meal-q4').style.display = 'none';
+                document.getElementById('meal-q5').style.display = 'block';
+            } else {
+                // Not a social function
+                showMealResult('YES', 'YES', 'YES', 'Off-premises meal expenses for employees are generally deductible but subject to FBT.');
+            }
+        }
+        
+        function mealQ5(answer) {
+            if (answer === 'yes') {
+                // Less than $300 per person
+                showMealResult('YES', 'NO (exempt)', 'NO', 'Social functions under $300 per person may qualify for the minor benefits exemption, meaning no FBT applies. However, GST credits are generally not available when the minor benefits exemption is applied.');
+            } else {
+                // More than $300 per person
+                showMealResult('YES', 'YES', 'YES', 'Social functions exceeding $300 per person are deductible but subject to FBT.');
+            }
+        }
+        
+        function mealQ6(answer) {
+            if (answer === 'yes') {
+                // Includes clients/external parties
+                showMealResult('YES', 'YES (employee portion)', 'YES', 'Meals with clients are generally deductible. FBT applies to the employee portion only. GST credits are available if the expense is deductible.');
+            } else {
+                // Neither employees nor clients
+                showMealResult('NO', 'NO', 'NO', 'If the meal is neither for employees nor clients/external parties, it likely has no business purpose and is not deductible.');
+            }
+        }
+        
+        function showMealResult(deductible, fbt, gst, notes) {
+            // Hide all question containers
+            document.querySelectorAll('#meal-decision-tree .question-container').forEach(q => {
+                q.style.display = 'none';
+            });
+            
+            // Set result values
+            document.getElementById('meal-deductible').innerHTML = `<span class="${deductible === 'YES' ? 'yes' : 'no'}">${deductible}</span>`;
+            document.getElementById('meal-fbt').innerHTML = `<span class="${fbt.includes('NO') ? 'no' : 'yes'}">${fbt}</span>`;
+            document.getElementById('meal-gst').innerHTML = `<span class="${gst === 'YES' ? 'yes' : 'no'}">${gst}</span>`;
+            document.getElementById('meal-notes').textContent = notes;
+            
+            // Show result container
+            document.getElementById('meal-result').style.display = 'block';
+        }
+        
+        function resetMeal() {
+            // Hide all question containers and result
+            document.querySelectorAll('#meal-decision-tree .question-container').forEach(q => {
+                q.style.display = 'none';
+            });
+            document.getElementById('meal-result').style.display = 'none';
+            
+            // Show first question
+            document.getElementById('meal-q1').style.display = 'block';
+        }
+        
+        // Travel Decision Tree Functions
+        function travelQ1(answer) {
+            if (answer === 'yes') {
+                // Home to regular workplace
+                showTravelResult('NO', 'NO', 'NO', 'Travel between home and regular workplace is considered private and not deductible.');
+            } else {
+                // Not home to regular workplace
+                document.getElementById('travel-q1').style.display = 'none';
+                document.getElementById('travel-q2').style.display = 'block';
+            }
+        }
+        
+        function travelQ2(answer) {
+            if (answer === 'yes') {
+                // Overnight business travel
+                document.getElementById('travel-q2').style.display = 'none';
+                document.getElementById('travel-q3').style.display = 'block';
+            } else {
+                // Not overnight business travel
+                document.getElementById('travel-q2').style.display = 'none';
+                document.getElementById('travel-q5').style.display = 'block';
+            }
+        }
+        
+        function travelQ3(answer) {
+            if (answer === 'yes') {
+                // Entirely for business
+                showTravelResult('YES', 'NO', 'YES', 'Travel expenses that are entirely for business purposes are fully deductible with no FBT implications.');
+            } else {
+                // Not entirely for business
+                document.getElementById('travel-q3').style.display = 'none';
+                document.getElementById('travel-q4').style.display = 'block';
+            }
+        }
+        
+        function travelQ4(answer) {
+            if (answer === 'yes') {
+                // Has private component
+                showTravelResult('PARTIAL', 'YES (private portion)', 'PARTIAL', 'When travel has both business and private components, only the business portion is deductible. FBT applies to the private portion. GST credits are available only for the business portion.');
+            } else {
+                // No private component
+                showTravelResult('YES', 'NO', 'YES', 'Travel expenses that are entirely for business purposes are fully deductible with no FBT implications.');
+            }
+        }
+        
+        function travelQ5(answer) {
+            if (answer === 'yes') {
+                // Between work locations
+                showTravelResult('YES', 'NO', 'YES', 'Travel between work locations is deductible with no FBT implications.');
+            } else {
+                // Not between work locations
+                showTravelResult('NO', 'NO', 'NO', 'This travel appears to be private in nature and is not deductible.');
+            }
+        }
+        
+        function showTravelResult(deductible, fbt, gst, notes) {
+            // Hide all question containers
+            document.querySelectorAll('#travel-decision-tree .question-container').forEach(q => {
+                q.style.display = 'none';
+            });
+            
+            // Set result values
+            document.getElementById('travel-deductible').innerHTML = `<span class="${deductible === 'YES' ? 'yes' : deductible === 'PARTIAL' ? 'maybe' : 'no'}">${deductible}</span>`;
+            document.getElementById('travel-fbt').innerHTML = `<span class="${fbt.includes('NO') ? 'no' : 'yes'}">${fbt}</span>`;
+            document.getElementById('travel-gst').innerHTML = `<span class="${gst === 'YES' ? 'yes' : gst === 'PARTIAL' ? 'maybe' : 'no'}">${gst}</span>`;
+            document.getElementById('travel-notes').textContent = notes;
+            
+            // Show result container
+            document.getElementById('travel-result').style.display = 'block';
+        }
+        
+        function resetTravel() {
+            // Hide all question containers and result
+            document.querySelectorAll('#travel-decision-tree .question-container').forEach(q => {
+                q.style.display = 'none';
+            });
+            document.getElementById('travel-result').style.display = 'none';
+            
+            // Show first question
+            document.getElementById('travel-q1').style.display = 'block';
+        }
+        
+        // Entertainment Decision Tree Functions
+        function entQ1(answer) {
+            if (answer === 'yes') {
+                // Involves food, drink, or recreation
+                document.getElementById('ent-q1').style.display = 'none';
+                document.getElementById('ent-q2').style.display = 'block';
+            } else {
+                // Not food, drink, or recreation
+                document.getElementById('ent-q1').style.display = 'none';
+                document.getElementById('ent-q4').style.display = 'block';
+            }
+        }
+        
+        function entQ2(answer) {
+            if (answer === 'yes') {
+                // Light refreshments
+                showEntResult('NO', 'YES', 'NO', 'YES', 'Light refreshments such as morning/afternoon tea, overtime meals, or seminar refreshments are generally not considered entertainment, but sustenance. They are deductible with no FBT implications.');
+            } else {
+                // Not light refreshments
+                document.getElementById('ent-q2').style.display = 'none';
+                document.getElementById('ent-q3').style.display = 'block';
+            }
+        }
+        
+        function entQ3(answer) {
+            if (answer === 'yes') {
+                // Provided to employees
+                document.getElementById('ent-q3').style.display = 'none';
+                document.getElementById('ent-q5').style.display = 'block';
+            } else {
+                // Not provided to employees
+                showEntResult('YES', 'YES', 'NO', 'YES', 'Entertainment provided to non-employees (e.g., clients) is generally deductible but no FBT applies as it is not provided to employees. GST credits are available if the expense is deductible.');
+            }
+        }
+        
+        function entQ4(answer) {
+            if (answer === 'yes') {
+                // Work-related
+                showEntResult('NO', 'YES', 'NO', 'YES', 'Work-related expenses that are not entertainment (e.g., business equipment, professional services) are generally deductible with no FBT implications.');
+            } else {
+                // Not work-related
+                showEntResult('NO', 'NO', 'NO', 'NO', 'Expenses that are neither entertainment nor work-related are generally not deductible for business purposes.');
+            }
+        }
+        
+        function entQ5(answer) {
+            if (answer === 'yes') {
+                // Less than $300 per employee
+                showEntResult('YES', 'YES', 'NO (exempt)', 'YES', 'Entertainment provided to employees that costs less than $300 per person may qualify for the minor benefits exemption from FBT. The expense is still deductible for income tax purposes.');
+            } else {
+                // More than $300 per employee
+                showEntResult('YES', 'YES', 'YES', 'YES', 'Entertainment provided to employees that exceeds $300 per person is subject to FBT. The expense is deductible for income tax purposes, and GST credits are available.');
+            }
+        }
+        
+        function showEntResult(isEnt, deductible, fbt, gst, notes) {
+            // Hide all question containers
+            document.querySelectorAll('#entertainment-decision-tree .question-container').forEach(q => {
+                q.style.display = 'none';
+            });
+            
+            // Set result values
+            document.getElementById('ent-isent').innerHTML = `<span class="${isEnt === 'YES' ? 'yes' : 'no'}">${isEnt}</span>`;
+            document.getElementById('ent-deductible').innerHTML = `<span class="${deductible === 'YES' ? 'yes' : 'no'}">${deductible}</span>`;
+            document.getElementById('ent-fbt').innerHTML = `<span class="${fbt.includes('NO') ? 'no' : 'yes'}">${fbt}</span>`;
+            document.getElementById('ent-gst').innerHTML = `<span class="${gst === 'YES' ? 'yes' : 'no'}">${gst}</span>`;
+            document.getElementById('ent-notes').textContent = notes;
+            
+            // Show result container
+            document.getElementById('ent-result').style.display = 'block';
+        }
+        
+        function resetEnt() {
+            // Hide all question containers and result
+            document.querySelectorAll('#entertainment-decision-tree .question-container').forEach(q => {
+                q.style.display = 'none';
+            });
+            document.getElementById('ent-result').style.display = 'none';
+            
+            // Show first question
+            document.getElementById('ent-q1').style.display = 'block';
+        }
+        
+        // Initialize all trees
+        window.onload = function() {
+            resetMeal();
+            resetTravel();
+            resetEnt();
+        };
